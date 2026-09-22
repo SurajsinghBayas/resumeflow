@@ -43,12 +43,6 @@ export function DashboardApp({
   const [pending, setPending] = useState(false);
   const [dragging, setDragging] = useState(false);
 
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
-    router.refresh();
-  }
-
   async function deleteReview(id: string) {
     if (!window.confirm("Delete this review? This cannot be undone.")) return;
     const response = await fetch(`/api/analyses/${encodeURIComponent(id)}`, {
@@ -151,14 +145,10 @@ export function DashboardApp({
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:py-8">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-muted">Signed in as {user.email}</p>
           <h1 className="font-serif text-3xl tracking-tight">{firstName(user.name)}&apos;s desk</h1>
         </div>
-        <button type="button" onClick={logout} className="text-sm text-muted underline underline-offset-4">
-          Log out
-        </button>
       </header>
 
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">

@@ -1,6 +1,6 @@
 import { redirect, unstable_rethrow } from "next/navigation";
-import { Logo } from "@/components/logo";
 import { DashboardApp } from "@/components/dashboard-app";
+import { NavBar } from "@/components/nav-bar";
 import { readSession } from "@/lib/auth";
 import { countAnalysesToday, getLeaderboard, getProfile, listAnalyses } from "@/lib/db";
 import { CONTACT_LINKEDIN_URL, MAX_REVIEWS_PER_DAY } from "@/lib/limits";
@@ -16,19 +16,19 @@ export default async function DashboardPage() {
   const loaded = await loadDashboard(session.id);
   if ("error" in loaded) {
     return (
-      <main className="mx-auto max-w-lg px-5 py-16">
-        <Logo />
-        <h1 className="mt-8 font-serif text-4xl">The desk could not open</h1>
-        <p className="mt-3 text-sm leading-6 text-muted">{loaded.error}</p>
-      </main>
+      <div className="flex flex-1 flex-col">
+        <NavBar user={{ name: session.name, email: session.email }} />
+        <main className="mx-auto w-full max-w-lg flex-1 px-5 py-16">
+          <h1 className="font-serif text-4xl">The desk could not open</h1>
+          <p className="mt-3 text-sm leading-6 text-muted">{loaded.error}</p>
+        </main>
+      </div>
     );
   }
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="mx-auto w-full max-w-6xl px-5 pt-5">
-        <Logo />
-      </div>
+      <NavBar user={{ name: session.name, email: session.email }} />
       <DashboardApp
         user={session}
         profile={loaded.profile}

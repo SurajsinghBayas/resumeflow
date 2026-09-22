@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Logo } from "@/components/logo";
+import { NavBar } from "@/components/nav-bar";
 import { readSession } from "@/lib/auth";
 import { getProfile } from "@/lib/db";
 
@@ -15,17 +15,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5">
-        <Logo />
-        <nav className="flex items-center gap-4 text-sm">
-          <Link href="/login" className="text-muted">
-            Log in
-          </Link>
-          <Link href={href} className="rounded-full bg-ink px-4 py-2 text-paper">
-            {label}
-          </Link>
-        </nav>
-      </header>
+      <NavBar action={{ href, label }} />
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-5 pb-16">
         <section className="max-w-3xl pt-10 sm:pt-16">

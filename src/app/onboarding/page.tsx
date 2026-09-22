@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Logo } from "@/components/logo";
+import { NavBar } from "@/components/nav-bar";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 import { readSession } from "@/lib/auth";
 import { getProfile } from "@/lib/db";
@@ -10,11 +10,13 @@ export default async function OnboardingPage() {
   const profile = await getProfile(session.id);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 py-8">
-      <Logo />
-      <div className="mt-10">
-        <OnboardingWizard initial={profile} />
-      </div>
-    </main>
+    <div className="flex flex-1 flex-col">
+      <NavBar user={{ name: session.name, email: session.email }} />
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-5 py-8">
+        <div className="mt-4">
+          <OnboardingWizard initial={profile} />
+        </div>
+      </main>
+    </div>
   );
 }
