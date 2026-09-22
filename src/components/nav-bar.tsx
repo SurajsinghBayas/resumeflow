@@ -20,11 +20,9 @@ function getDesktopSnapshot() {
 export function NavBar({
   user,
   action,
-  activeView,
 }: {
   user?: { name: string; email: string } | null;
   action?: { href: string; label: string };
-  activeView?: "reviews" | "leaderboard";
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -53,14 +51,19 @@ export function NavBar({
   const links = user
     ? [
         {
-          href: "/dashboard?view=reviews",
-          label: "Past reviews",
-          active: pathname === "/dashboard" && activeView !== "leaderboard",
+          href: "/dashboard",
+          label: "Review",
+          active: pathname === "/dashboard",
         },
         {
-          href: "/dashboard?view=leaderboard",
+          href: "/dashboard/reviews",
+          label: "Past reviews",
+          active: pathname === "/dashboard/reviews",
+        },
+        {
+          href: "/dashboard/leaderboard",
           label: "Leaderboard",
-          active: pathname === "/dashboard" && activeView === "leaderboard",
+          active: pathname === "/dashboard/leaderboard",
         },
         {
           href: "/onboarding",

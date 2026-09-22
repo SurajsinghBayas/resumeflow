@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ReportView } from "@/components/report-view";
+import { useRouter } from "next/navigation";
+import { useState, type FormEvent } from "react";
 import { linkedinHref, linkedinName } from "@/lib/linkedin";
-import type { AnalysisRecord, LeaderboardEntry, Profile, SessionUser } from "@/lib/types";
+import type { AnalysisRecord, Profile, SessionUser } from "@/lib/types";
 
 const fieldClass =
   "w-full rounded-xl border border-line bg-card px-3.5 py-3 text-base outline-none transition placeholder:text-muted/70 focus:border-clay focus:ring-2 focus:ring-clay/20 sm:text-[15px]";
@@ -13,8 +12,6 @@ const fieldClass =
 export function DashboardApp({
   user,
   profile,
-  initialAnalyses,
-  initialLeaderboard,
   gatewayConfigured,
   reviewLimit,
   initialRemaining,
@@ -22,32 +19,12 @@ export function DashboardApp({
 }: {
   user: SessionUser;
   profile: Profile;
-  initialAnalyses: AnalysisRecord[];
-  initialLeaderboard: LeaderboardEntry[];
   gatewayConfigured: boolean;
   reviewLimit: number;
   initialRemaining: number;
   contactUrl: string;
 }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const tab = searchParams.get("view") === "leaderboard" ? "leaderboard" : "reviews";
-  function goTab(next: "reviews" | "leaderboard") {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    router.replace(`/dashboard?view=${next}`, { scroll: false });
-  }
-  // Navbar deep-links change the URL without remounting: glide up on tab switch.
-  const firstTab = useRef(true);
-  useEffect(() => {
-    if (firstTab.current) {
-      firstTab.current = false;
-      return;
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [tab]);
-  const [analyses, setAnalyses] = useState(initialAnalyses);
-  const [leaderboard, setLeaderboard] = useState(initialLeaderboard);
-  const [activeId, setActiveId] = useState(initialAnalyses[0]?.id ?? "");
   const [jobDescription, setJobDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
@@ -56,19 +33,6 @@ export function DashboardApp({
   const [remaining, setRemaining] = useState(initialRemaining);
   const [pending, setPending] = useState(false);
   const [dragging, setDragging] = useState(false);
-
-  async function deleteReview(id: string) {
-    if (!window.confirm("Delete this review? This cannot be undone.")) return;
-    const response = await fetch(`/api/analyses/${encodeURIComponent(id)}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) return;
-    setAnalyses((current) => {
-      const next = current.filter((item) => item.id !== id);
-      if (activeId === id) setActiveId(next[0]?.id ?? "");
-      return next;
-    });
-  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -136,15 +100,9 @@ export function DashboardApp({
           if (typeof event.remaining === "number") failedRemaining = event.remaining;
         }
         if (event.type === "result" && event.analysis) {
-          setAnalyses((current) => [event.analysis!, ...current.filter((item) => item.id !== event.analysis!.id)]);
-          setActiveId(event.analysis.id);
-          goTab("reviews");
           setRemaining((current) => Math.max(0, current - 1));
-          const board = await fetch("/api/leaderboard");
-          if (board.ok) {
-            const body = (await board.json()) as { entries?: LeaderboardEntry[] };
-            if (body.entries) setLeaderboard(body.entries);
-          }
+          router.push("/dashboard/reviews");
+          router.refresh();
         }
       }
     }
@@ -295,189 +253,7 @@ export function DashboardApp({
         </div>
       </div>
 
-      <section className="mt-8">
-        <div className="flex gap-2">
-          <TabButton active={tab === "reviews"} onClick={() => goTab("reviews")}>
-            Past reviews
-          </TabButton>
-          <TabButton active={tab === "leaderboard"} onClick={() => goTab("leaderboard")}>
-            Leaderboard
-          </TabButton>
-        </div>
-
-        {tab === "reviews" ? (
-          <PastReviews analyses={analyses} activeId={activeId} onSelect={setActiveId} onDelete={deleteReview} />
-        ) : (
-          <Leaderboard entries={leaderboard} />
-        )}
-      </section>
     </div>
-  );
-}
-
-function PastReviews({
-  analyses,
-  activeId,
-  onSelect,
-  onDelete,
-}: {
-  analyses: AnalysisRecord[];
-  activeId: string;
-  onSelect: (id: string) => void;
-  onDelete: (id: string) => void;
-}) {
-  const active = analyses.find((item) => item.id === activeId) ?? null;
-  if (analyses.length === 0) {
-    return <p className="mt-4 text-sm text-muted">Reviews you run will show up here.</p>;
-  }
-  return (
-    <div className="mt-4 grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-      <ul className="max-h-[36rem] space-y-2 overflow-y-auto">
-        {analyses.map((item) => (
-          <li key={item.id}>
-            <div
-              className={`flex items-start gap-2 rounded-2xl border px-4 py-3 ${
-                item.id === activeId ? "border-ink bg-card" : "border-line bg-card/70"
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => onSelect(item.id)}
-                className="min-w-0 flex-1 text-left"
-              >
-                <p className="truncate font-medium">{item.filename}</p>
-                <p className="mt-1 text-sm text-muted">
-                  {item.report.matchLabel} · {item.report.matchScore}
-                </p>
-                <p className="mt-1 text-xs text-muted">{new Date(item.createdAt).toLocaleString()}</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete(item.id)}
-                aria-label={`Delete ${item.filename}`}
-                title="Delete review"
-                className="mt-1 shrink-0 text-xs text-muted underline underline-offset-4 hover:text-warn"
-              >
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <div className="min-w-0">
-        {active ? (
-          <>
-            <p className="mb-3 text-sm text-muted">
-              {active.filename} · {new Date(active.createdAt).toLocaleString()}
-            </p>
-            <ReportView report={active.report} />
-          </>
-        ) : (
-          <p className="text-sm text-muted">Choose a review to read it.</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function Leaderboard({ entries }: { entries: LeaderboardEntry[] }) {
-  const you = entries.find((entry) => entry.isYou);
-  return (
-    <div className="mt-4">
-      <p className="text-sm text-muted">Ranked by the highest score on each resume.</p>
-      {you ? (
-        <p className="mt-3 rounded-2xl bg-moss px-4 py-3 text-sm text-forest">
-          Your resume is rank {you.rank} with a score of {you.score}.
-        </p>
-      ) : (
-        <p className="mt-3 rounded-2xl bg-paper px-4 py-3 text-sm text-muted">
-          Run a review to see where your resume ranks.
-        </p>
-      )}
-      {entries.length === 0 ? (
-        <p className="mt-4 text-sm text-muted">No ranked resumes yet.</p>
-      ) : (
-        <>
-          <ul className="mt-4 space-y-2 sm:hidden">
-            {entries.map((entry, index) => (
-              <li
-                key={`${entry.rank}-${index}`}
-                className={`rounded-2xl border px-4 py-3 ${entry.isYou ? "border-ink bg-moss" : "border-line bg-card"}`}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium">
-                    #{entry.rank} · {entry.score}
-                    {entry.isYou && <span className="ml-2 text-xs text-forest">You</span>}
-                  </p>
-                </div>
-                <p className="mt-1 truncate text-sm text-muted">{entry.role}</p>
-                <p className="mt-1 truncate text-sm">
-                  {entry.linkedinHref ? (
-                    <a href={entry.linkedinHref} target="_blank" rel="noreferrer" className="underline underline-offset-4">
-                      {entry.linkedinName}
-                    </a>
-                  ) : (
-                    entry.linkedinName
-                  )}
-                </p>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4 hidden overflow-x-auto rounded-3xl border border-line bg-card sm:block">
-          <table className="w-full min-w-[36rem] text-left text-sm">
-            <thead className="border-b border-line text-xs tracking-[0.14em] text-muted uppercase">
-              <tr>
-                <th className="px-4 py-3 font-medium">Rank</th>
-                <th className="px-4 py-3 font-medium">LinkedIn</th>
-                <th className="px-4 py-3 font-medium">Role</th>
-                <th className="px-4 py-3 font-medium">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((entry, index) => (
-                <tr key={`${entry.rank}-${index}`} className={entry.isYou ? "bg-moss" : undefined}>
-                  <td className="px-4 py-3 font-medium">{entry.rank}</td>
-                  <td className="px-4 py-3">
-                    {entry.linkedinHref ? (
-                      <a href={entry.linkedinHref} target="_blank" rel="noreferrer" className="underline underline-offset-4">
-                        {entry.linkedinName}
-                      </a>
-                    ) : (
-                      entry.linkedinName
-                    )}
-                    {entry.isYou && <span className="ml-2 text-xs text-forest">You</span>}
-                  </td>
-                  <td className="px-4 py-3">{entry.role}</td>
-                  <td className="px-4 py-3">{entry.score}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-full px-4 py-2.5 text-sm ${active ? "bg-ink text-paper" : "border border-line bg-card"}`}
-    >
-      {children}
-    </button>
   );
 }
 
