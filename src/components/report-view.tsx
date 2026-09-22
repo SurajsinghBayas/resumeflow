@@ -1,3 +1,4 @@
+import { ReportActions } from "@/components/report-actions";
 import type { Critique, Report, Suggestion } from "@/lib/types";
 
 export function ReportView({ report }: { report: Report }) {
@@ -44,7 +45,10 @@ export function ReportView({ report }: { report: Report }) {
       </section>
 
       <section>
-        <SectionTitle eyebrow="Suggestions" title="Lines worth rewriting" />
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <SectionTitle eyebrow="Suggestions" title="Lines worth rewriting" />
+          <ReportActions report={report} />
+        </div>
         <ul className="mt-4 space-y-4">
           {report.suggestions.map((item, index) => (
             <SuggestionCard key={`suggestion-${index}`} suggestion={item} />
