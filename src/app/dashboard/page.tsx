@@ -1,0 +1,71 @@
+import { redirect, unstable_rethrow } from "next/navigation";
+import { Logo } from "@/components/logo";
+import { DashboardApp } from "@/components/dashboard-app";
+import { readSession } from "@/lib/auth";
+import { countAnalysesToday, getLeaderboard, getProfile, listAnalyses } from "@/lib/db";
+import { CONTACT_LINKEDIN_URL, MAX_REVIEWS_PER_DAY } from "@/lib/limits";
+import { gatewayConfigured } from "@/lib/llm";
+import type { AnalysisRecord, LeaderboardEntry, Profile } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const session = await readSession();
+  if (!session) redirect("/login");
+
+  const loaded = await loadDashboard(session.id);
+  if ("error" in loaded) {
+    return (
+      <main className="mx-auto max-w-lg px-5 py-16">
+        <Logo />
+        <h1 className="mt-8 font-serif text-4xl">The desk could not open</h1>
+        <p className="mt-3 text-sm leading-6 text-muted">{loaded.error}</p>
+      </main>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <div className="mx-auto w-full max-w-6xl px-5 pt-5">
+        <Logo />
+      </div>
+      <DashboardApp
+        user={session}
+        profile={loaded.profile}
+        initialAnalyses={loaded.analyses}
+        initialLeaderboard={loaded.leaderboard}
+        gatewayConfigured={gatewayConfigured()}
+        reviewLimit={MAX_REVIEWS_PER_DAY}
+        initialRemaining={loaded.remaining}
+        contactUrl={CONTACT_LINKEDIN_URL}
+      />
+    </div>
+  );
+}
+
+async function loadDashboard(
+  userId: string,
+): Promise<
+  { profile: Profile; analyses: AnalysisRecord[]; leaderboard: LeaderboardEntry[]; remaining: number } | { error: string }
+> {
+  try {
+    const profile = await getProfile(userId);
+    if (!profile?.onboarded || !profile.linkedin.trim()) redirect("/onboarding");
+    const [analyses, leaderboard, usedToday] = await Promise.all([
+      listAnalyses(userId),
+      getLeaderboard(userId),
+      countAnalysesToday(userId),
+    ]);
+    return {
+      profile,
+      analyses,
+      leaderboard,
+      remaining: Math.max(0, MAX_REVIEWS_PER_DAY - usedToday),
+    };
+  } catch (error) {
+    unstable_rethrow(error);
+    return {
+      error: error instanceof Error ? error.message : "The database could not be reached.",
+    };
+  }
+}

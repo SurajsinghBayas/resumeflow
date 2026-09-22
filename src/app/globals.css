@@ -1,26 +1,50 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #f3efe6;
+  --ink: #1c1714;
+  --muted: #6f675f;
+  --line: #e4d9cc;
+  --card: #fffdf9;
+  --clay: #c45c26;
+  --clay-deep: #8d3e14;
+  --forest: #1e4a38;
+  --moss: #e7f0ea;
+  --warn: #8a4b12;
+  --warn-bg: #f8ecdf;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-card: var(--card);
+  --color-clay: var(--clay);
+  --color-clay-deep: var(--clay-deep);
+  --color-forest: var(--forest);
+  --color-moss: var(--moss);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --font-sans: var(--font-outfit);
+  --font-serif: var(--font-fraunces);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(1100px 480px at 0% -10%, rgba(196, 92, 38, 0.09), transparent 55%),
+    radial-gradient(800px 420px at 100% 0%, rgba(30, 74, 56, 0.07), transparent 50%),
+    var(--paper);
+  color: var(--ink);
+}
+
+::selection {
+  background: #f0d2c2;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
 }
