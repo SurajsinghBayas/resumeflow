@@ -161,23 +161,6 @@ export function DashboardApp({
         </button>
       </header>
 
-      <section className="mt-8">
-        <div className="flex gap-2">
-          <TabButton active={tab === "reviews"} onClick={() => setTab("reviews")}>
-            Past reviews
-          </TabButton>
-          <TabButton active={tab === "leaderboard"} onClick={() => setTab("leaderboard")}>
-            Leaderboard
-          </TabButton>
-        </div>
-
-        {tab === "reviews" ? (
-          <PastReviews analyses={analyses} activeId={activeId} onSelect={setActiveId} onDelete={deleteReview} />
-        ) : (
-          <Leaderboard entries={leaderboard} />
-        )}
-      </section>
-
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="rounded-3xl border border-line bg-card p-5">
           <p className="text-xs tracking-[0.16em] text-clay uppercase">Your aim</p>
@@ -307,6 +290,23 @@ export function DashboardApp({
           </form>
         </div>
       </div>
+
+      <section className="mt-8">
+        <div className="flex gap-2">
+          <TabButton active={tab === "reviews"} onClick={() => setTab("reviews")}>
+            Past reviews
+          </TabButton>
+          <TabButton active={tab === "leaderboard"} onClick={() => setTab("leaderboard")}>
+            Leaderboard
+          </TabButton>
+        </div>
+
+        {tab === "reviews" ? (
+          <PastReviews analyses={analyses} activeId={activeId} onSelect={setActiveId} onDelete={deleteReview} />
+        ) : (
+          <Leaderboard entries={leaderboard} />
+        )}
+      </section>
     </div>
   );
 }
