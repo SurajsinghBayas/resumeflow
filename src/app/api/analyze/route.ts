@@ -9,6 +9,7 @@ import {
 } from "@/lib/limits";
 import { LlmError } from "@/lib/llm";
 import { reviewModels } from "@/lib/models";
+import { crossOriginResponse, isSameOrigin } from "@/lib/request";
 import { extractResumeText } from "@/lib/resume";
 import type { AnalysisRecord } from "@/lib/types";
 
@@ -16,6 +17,7 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return crossOriginResponse();
   const session = await readSession();
   if (!session) {
     return Response.json({ error: "Sign in to review a resume." }, { status: 401 });

@@ -65,11 +65,18 @@ export async function complete(model: string, system: string, user: string) {
   } | null;
 
   if (!response.ok) {
-    const message =
+    const detail =
       typeof body?.error === "string"
         ? body.error
-        : body?.error?.message || `The model gateway returned ${response.status}.`;
-    throw new LlmError(message);
+        : body?.error?.message || `status ${response.status}`;
+    // Log the upstream detail server-side; never leak provider internals,
+    // quotas, or key state to the client.
+    console.error(`LLM gateway error from ${baseUrl()}: ${detail}`);
+    throw new LlmError(
+      response.status === 429
+        ? "The review service is busy. Please wait a moment and try again."
+        : "The review service is temporarily unavailable. Please try again.",
+    );
   }
 
   const content = body?.choices?.[0]?.message?.content;

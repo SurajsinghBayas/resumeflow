@@ -49,6 +49,19 @@ export function DashboardApp({
     router.refresh();
   }
 
+  async function deleteReview(id: string) {
+    if (!window.confirm("Delete this review? This cannot be undone.")) return;
+    const response = await fetch(`/api/analyses/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) return;
+    setAnalyses((current) => {
+      const next = current.filter((item) => item.id !== id);
+      if (activeId === id) setActiveId(next[0]?.id ?? "");
+      return next;
+    });
+  }
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError("");
@@ -289,7 +302,7 @@ export function DashboardApp({
         </div>
 
         {tab === "reviews" ? (
-          <PastReviews analyses={analyses} activeId={activeId} onSelect={setActiveId} />
+          <PastReviews analyses={analyses} activeId={activeId} onSelect={setActiveId} onDelete={deleteReview} />
         ) : (
           <Leaderboard entries={leaderboard} />
         )}
@@ -302,10 +315,12 @@ function PastReviews({
   analyses,
   activeId,
   onSelect,
+  onDelete,
 }: {
   analyses: AnalysisRecord[];
   activeId: string;
   onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const active = analyses.find((item) => item.id === activeId) ?? null;
   if (analyses.length === 0) {
@@ -316,19 +331,32 @@ function PastReviews({
       <ul className="max-h-[36rem] space-y-2 overflow-y-auto">
         {analyses.map((item) => (
           <li key={item.id}>
-            <button
-              type="button"
-              onClick={() => onSelect(item.id)}
-              className={`w-full rounded-2xl border px-4 py-3 text-left ${
+            <div
+              className={`flex items-start gap-2 rounded-2xl border px-4 py-3 ${
                 item.id === activeId ? "border-ink bg-card" : "border-line bg-card/70"
               }`}
             >
-              <p className="truncate font-medium">{item.filename}</p>
-              <p className="mt-1 text-sm text-muted">
-                {item.report.matchLabel} · {item.report.matchScore}
-              </p>
-              <p className="mt-1 text-xs text-muted">{new Date(item.createdAt).toLocaleString()}</p>
-            </button>
+              <button
+                type="button"
+                onClick={() => onSelect(item.id)}
+                className="min-w-0 flex-1 text-left"
+              >
+                <p className="truncate font-medium">{item.filename}</p>
+                <p className="mt-1 text-sm text-muted">
+                  {item.report.matchLabel} · {item.report.matchScore}
+                </p>
+                <p className="mt-1 text-xs text-muted">{new Date(item.createdAt).toLocaleString()}</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(item.id)}
+                aria-label={`Delete ${item.filename}`}
+                title="Delete review"
+                className="mt-1 shrink-0 text-xs text-muted underline underline-offset-4 hover:text-warn"
+              >
+                Delete
+              </button>
+            </div>
           </li>
         ))}
       </ul>

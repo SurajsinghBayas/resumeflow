@@ -11,7 +11,9 @@ function createPool() {
   }
   return new Pool({
     connectionString,
-    max: 5,
+    // Keep low on serverless: every instance opens its own pool.
+    // Override with PG_POOL_MAX when backing it with PgBouncer.
+    max: Math.max(1, Number(process.env.PG_POOL_MAX ?? 5) || 5),
   });
 }
 
@@ -21,7 +23,7 @@ if (process.env.NODE_ENV !== "production") {
   globalForPg.pool = pool;
 }
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
@@ -60,6 +62,16 @@ CREATE TABLE IF NOT EXISTS analyses (
 
 CREATE INDEX IF NOT EXISTS analyses_user_created_idx
   ON analyses (user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  jti text PRIMARY KEY,
+  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS sessions_user_idx
+  ON sessions (user_id);
 `;
 
 export function ensureSchema() {
@@ -172,8 +184,32 @@ export async function saveProfile(userId: string, profile: Profile) {
   );
 }
 
-export async function listAnalyses(userId: string): Promise<AnalysisRecord[]> {
+export async function createSession(jti: string, userId: string, expiresAt: Date) {
   await ensureSchema();
+  await pool.query(
+    "insert into sessions (jti, user_id, expires_at) values ($1, $2, $3) on conflict (jti) do nothing",
+    [jti, userId, expiresAt],
+  );
+  // Best-effort cleanup of expired rows; never fail the request for it.
+  pool.query("delete from sessions where expires_at < now()").catch(() => {});
+}
+
+export async function sessionActive(jti: string) {
+  await ensureSchema();
+  const result = await pool.query("select 1 from sessions where jti = $1 and expires_at > now()", [
+    jti,
+  ]);
+  return (result.rowCount ?? 0) > 0;
+}
+
+export async function revokeSession(jti: string) {
+  await ensureSchema();
+  await pool.query("delete from sessions where jti = $1", [jti]);
+}
+
+export async function listAnalyses(userId: string, limit = 20): Promise<AnalysisRecord[]> {
+  await ensureSchema();
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(limit) || 20));
   const result = await pool.query<{
     id: string;
     filename: string;
@@ -185,8 +221,9 @@ export async function listAnalyses(userId: string): Promise<AnalysisRecord[]> {
     `select id, filename, model, job_description, report, created_at
      from analyses
      where user_id = $1
-     order by created_at desc`,
-    [userId],
+     order by created_at desc
+     limit $2`,
+    [userId, safeLimit],
   );
   return result.rows.map((row) => ({
     id: row.id,
@@ -235,8 +272,21 @@ export async function insertAnalysis(input: {  id: string;
   return result.rows[0].created_at.toISOString();
 }
 
-export async function getLeaderboard(currentUserId: string): Promise<LeaderboardEntry[]> {
+export async function deleteAnalysis(userId: string, id: string) {
   await ensureSchema();
+  const result = await pool.query("delete from analyses where id = $1 and user_id = $2", [
+    id,
+    userId,
+  ]);
+  return (result.rowCount ?? 0) > 0;
+}
+
+export async function getLeaderboard(
+  currentUserId: string,
+  limit = 50,
+): Promise<LeaderboardEntry[]> {
+  await ensureSchema();
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(limit) || 50));
   const result = await pool.query<{
     user_id: string;
     linkedin: string;
@@ -251,10 +301,12 @@ export async function getLeaderboard(currentUserId: string): Promise<Leaderboard
      )
      select p.user_id, p.linkedin, p.job_title, b.score,
             rank() over (order by b.score desc, p.job_title asc) as rank
-     from best b
-     join profiles p on p.user_id = b.user_id
-     where p.onboarded and length(trim(p.linkedin)) > 0
-     order by rank asc, p.job_title asc`,
+      from best b
+      join profiles p on p.user_id = b.user_id
+      where p.onboarded and length(trim(p.linkedin)) > 0
+      order by rank asc, p.job_title asc
+      limit $1`,
+    [safeLimit],
   );
   return result.rows.map((row) => ({
     rank: Number(row.rank),

@@ -3,6 +3,8 @@ import { readSession } from "@/lib/auth";
 import { saveProfile } from "@/lib/db";
 import { isLinkedinProfile } from "@/lib/linkedin";
 import { SENIORITY_OPTIONS, WORK_STYLES } from "@/lib/preferences";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/ratelimit";
+import { crossOriginResponse, isSameOrigin } from "@/lib/request";
 
 const schema = z.object({
   jobTitle: z.string().trim().min(2).max(80),
@@ -15,10 +17,13 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return crossOriginResponse();
   const session = await readSession();
   if (!session) {
     return Response.json({ error: "Sign in to save your preferences." }, { status: 401 });
   }
+  const gate = checkRateLimit(`onboarding:${session.id}`, 30, 60_000);
+  if (!gate.allowed) return rateLimitedResponse(gate.resetMs);
 
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);

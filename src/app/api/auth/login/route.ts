@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { writeSession } from "@/lib/auth";
 import { findUserByEmail, getProfile } from "@/lib/db";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/ratelimit";
+import { clientIp, crossOriginResponse, isSameOrigin } from "@/lib/request";
 
 const schema = z.object({
   email: z.string().trim().email(),
@@ -9,6 +11,10 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return crossOriginResponse();
+  const gate = checkRateLimit(`login:${clientIp(request)}`, 10, 60_000);
+  if (!gate.allowed) return rateLimitedResponse(gate.resetMs);
+
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

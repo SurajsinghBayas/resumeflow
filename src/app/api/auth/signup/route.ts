@@ -3,19 +3,26 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { writeSession } from "@/lib/auth";
 import { createUser, findUserByEmail } from "@/lib/db";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/ratelimit";
+import { clientIp, crossOriginResponse, isSameOrigin } from "@/lib/request";
 
 const schema = z.object({
   name: z.string().trim().min(2).max(80),
   email: z.string().trim().email().max(160),
-  password: z.string().min(8).max(200),
+  // bcrypt silently truncates past 72 bytes; reject longer passwords outright.
+  password: z.string().min(8).max(72),
 });
 
 export async function POST(request: Request) {
+  if (!isSameOrigin(request)) return crossOriginResponse();
+  const gate = checkRateLimit(`signup:${clientIp(request)}`, 5, 3_600_000);
+  if (!gate.allowed) return rateLimitedResponse(gate.resetMs);
+
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return Response.json(
-      { error: "Use your name, a valid email, and a password of at least 8 characters." },
+      { error: "Use your name, a valid email, and a password of 8 to 72 characters." },
       { status: 400 },
     );
   }
