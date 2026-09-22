@@ -8,6 +8,7 @@ import {
   limitReachedMessage,
 } from "@/lib/limits";
 import { LlmError } from "@/lib/llm";
+import { NOT_A_JOB_DESCRIPTION, looksLikeJobDescription, normalizeJobDescription } from "@/lib/jobdesc";
 import { reviewModels } from "@/lib/models";
 import { crossOriginResponse, isSameOrigin } from "@/lib/request";
 import { extractResumeText } from "@/lib/resume";
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
   }
 
   const form = await request.formData();
-  const jobDescription = String(form.get("jobDescription") ?? "").trim();
+  const jobDescription = normalizeJobDescription(form.get("jobDescription"));
   const resume = form.get("resume");
 
   if (jobDescription.length < 40) {
@@ -53,6 +54,9 @@ export async function POST(request: Request) {
   }
   if (jobDescription.length > 20000) {
     return Response.json({ error: "That job description is too long. Keep it under 20,000 characters." }, { status: 400 });
+  }
+  if (!looksLikeJobDescription(jobDescription)) {
+    return Response.json({ error: NOT_A_JOB_DESCRIPTION }, { status: 400 });
   }
   if (!(resume instanceof File)) {
     return Response.json({ error: "Upload a resume to review." }, { status: 400 });
