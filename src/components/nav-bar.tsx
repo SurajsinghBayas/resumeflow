@@ -20,9 +20,11 @@ function getDesktopSnapshot() {
 export function NavBar({
   user,
   action,
+  activeView,
 }: {
   user?: { name: string; email: string } | null;
   action?: { href: string; label: string };
+  activeView?: "reviews" | "leaderboard";
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -50,8 +52,21 @@ export function NavBar({
 
   const links = user
     ? [
-        { href: "/dashboard", label: "Dashboard" },
-        { href: "/onboarding", label: "Preferences" },
+        {
+          href: "/dashboard?view=reviews",
+          label: "Past reviews",
+          active: pathname === "/dashboard" && activeView !== "leaderboard",
+        },
+        {
+          href: "/dashboard?view=leaderboard",
+          label: "Leaderboard",
+          active: pathname === "/dashboard" && activeView === "leaderboard",
+        },
+        {
+          href: "/onboarding",
+          label: "Preferences",
+          active: pathname === "/onboarding",
+        },
       ]
     : [];
 
@@ -66,9 +81,9 @@ export function NavBar({
               <Link
                 key={link.href}
                 href={link.href}
-                aria-current={pathname === link.href ? "page" : undefined}
+                aria-current={link.active ? "page" : undefined}
                 className={`rounded-full px-4 py-2 text-sm transition ${
-                  pathname === link.href
+                  link.active
                     ? "bg-ink text-paper"
                     : "text-muted hover:bg-card hover:text-ink"
                 }`}
@@ -142,9 +157,9 @@ export function NavBar({
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              aria-current={pathname === link.href ? "page" : undefined}
+              aria-current={link.active ? "page" : undefined}
               className={`block rounded-xl px-3 py-2.5 text-sm ${
-                pathname === link.href ? "bg-ink text-paper" : "text-muted hover:bg-card hover:text-ink"
+                link.active ? "bg-ink text-paper" : "text-muted hover:bg-card hover:text-ink"
               }`}
             >
               {link.label}

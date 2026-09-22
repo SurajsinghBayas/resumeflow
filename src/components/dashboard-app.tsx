@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ReportView } from "@/components/report-view";
 import { linkedinHref, linkedinName } from "@/lib/linkedin";
@@ -30,10 +30,14 @@ export function DashboardApp({
   contactUrl: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = searchParams.get("view") === "leaderboard" ? "leaderboard" : "reviews";
+  function goTab(next: "reviews" | "leaderboard") {
+    router.replace(`/dashboard?view=${next}`, { scroll: false });
+  }
   const [analyses, setAnalyses] = useState(initialAnalyses);
   const [leaderboard, setLeaderboard] = useState(initialLeaderboard);
   const [activeId, setActiveId] = useState(initialAnalyses[0]?.id ?? "");
-  const [tab, setTab] = useState<"reviews" | "leaderboard">("reviews");
   const [jobDescription, setJobDescription] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
@@ -124,7 +128,7 @@ export function DashboardApp({
         if (event.type === "result" && event.analysis) {
           setAnalyses((current) => [event.analysis!, ...current.filter((item) => item.id !== event.analysis!.id)]);
           setActiveId(event.analysis.id);
-          setTab("reviews");
+          goTab("reviews");
           setRemaining((current) => Math.max(0, current - 1));
           const board = await fetch("/api/leaderboard");
           if (board.ok) {
@@ -283,10 +287,10 @@ export function DashboardApp({
 
       <section className="mt-8">
         <div className="flex gap-2">
-          <TabButton active={tab === "reviews"} onClick={() => setTab("reviews")}>
+          <TabButton active={tab === "reviews"} onClick={() => goTab("reviews")}>
             Past reviews
           </TabButton>
-          <TabButton active={tab === "leaderboard"} onClick={() => setTab("leaderboard")}>
+          <TabButton active={tab === "leaderboard"} onClick={() => goTab("leaderboard")}>
             Leaderboard
           </TabButton>
         </div>

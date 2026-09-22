@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { DashboardApp } from "@/components/dashboard-app";
 import { NavBar } from "@/components/nav-bar";
@@ -9,15 +10,21 @@ import type { AnalysisRecord, LeaderboardEntry, Profile } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   const session = await readSession();
   if (!session) redirect("/login");
 
+  const { view } = await searchParams;
+  const activeView = view === "leaderboard" ? "leaderboard" : "reviews";
   const loaded = await loadDashboard(session.id);
   if ("error" in loaded) {
     return (
       <div className="flex flex-1 flex-col">
-        <NavBar user={{ name: session.name, email: session.email }} />
+        <NavBar user={{ name: session.name, email: session.email }} activeView={activeView} />
         <main className="mx-auto w-full max-w-lg flex-1 px-5 py-16">
           <h1 className="font-serif text-4xl">The desk could not open</h1>
           <p className="mt-3 text-sm leading-6 text-muted">{loaded.error}</p>
@@ -28,17 +35,23 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <NavBar user={{ name: session.name, email: session.email }} />
-      <DashboardApp
-        user={session}
-        profile={loaded.profile}
-        initialAnalyses={loaded.analyses}
-        initialLeaderboard={loaded.leaderboard}
-        gatewayConfigured={gatewayConfigured()}
-        reviewLimit={MAX_REVIEWS_PER_DAY}
-        initialRemaining={loaded.remaining}
-        contactUrl={CONTACT_LINKEDIN_URL}
-      />
+      <NavBar user={{ name: session.name, email: session.email }} activeView={activeView} />
+      <Suspense
+        fallback={
+          <p className="mx-auto w-full max-w-6xl px-5 py-8 text-sm text-muted">Loading your desk…</p>
+        }
+      >
+        <DashboardApp
+          user={session}
+          profile={loaded.profile}
+          initialAnalyses={loaded.analyses}
+          initialLeaderboard={loaded.leaderboard}
+          gatewayConfigured={gatewayConfigured()}
+          reviewLimit={MAX_REVIEWS_PER_DAY}
+          initialRemaining={loaded.remaining}
+          contactUrl={CONTACT_LINKEDIN_URL}
+        />
+      </Suspense>
     </div>
   );
 }
