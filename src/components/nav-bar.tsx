@@ -2,8 +2,20 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/logo";
+
+const DESKTOP_QUERY = "(min-width: 768px)";
+
+function subscribeViewport(callback: () => void) {
+  const query = window.matchMedia(DESKTOP_QUERY);
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+
+function getDesktopSnapshot() {
+  return window.matchMedia(DESKTOP_QUERY).matches;
+}
 
 export function NavBar({
   user,
@@ -15,6 +27,18 @@ export function NavBar({
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  // Source of truth for which layout to render: the live viewport, not
+  // CSS alone — so a menu opened on mobile can never leak into desktop
+  // layout after a resize, and vice versa.
+  const isDesktop = useSyncExternalStore(subscribeViewport, getDesktopSnapshot, () => true);
+
+  // Close the mobile menu on navigation and when growing to desktop.
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+  useEffect(() => {
+    if (isDesktop) setOpen(false);
+  }, [isDesktop]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -35,8 +59,8 @@ export function NavBar({
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-3">
         <Logo />
 
-        {links.length > 0 && (
-          <nav className="hidden items-center gap-1 sm:flex" aria-label="Primary">
+        {isDesktop && links.length > 0 && (
+          <nav className="flex items-center gap-1" aria-label="Primary">
             {links.map((link) => (
               <Link
                 key={link.href}
@@ -54,50 +78,57 @@ export function NavBar({
           </nav>
         )}
 
-        <div className="hidden items-center gap-3 sm:flex">
-          {user ? (
-            <>
-              <span className="max-w-48 truncate text-sm text-muted" title={user.email}>
-                {user.email}
-              </span>
-              <button
-                type="button"
-                onClick={logout}
-                className="rounded-full border border-line bg-card px-4 py-2 text-sm transition hover:bg-paper"
-              >
-                Log out
-              </button>
-            </>
-          ) : (
-            <>
-              <Link href="/login" className="px-2 py-2 text-sm text-muted hover:text-ink">
-                Log in
-              </Link>
-              {action && (
-                <Link
-                  href={action.href}
-                  className="rounded-full bg-ink px-4 py-2 text-sm text-paper transition hover:bg-clay-deep"
+        {isDesktop && (
+          <div className="flex items-center gap-3">
+            {user ? (
+              <>
+                <span
+                  className="hidden max-w-56 truncate text-sm text-muted lg:block"
+                  title={user.email}
                 >
-                  {action.label}
+                  {user.email}
+                </span>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="rounded-full border border-line bg-card px-4 py-2 text-sm transition hover:bg-paper"
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="px-2 py-2 text-sm text-muted hover:text-ink">
+                  Log in
                 </Link>
-              )}
-            </>
-          )}
-        </div>
+                {action && (
+                  <Link
+                    href={action.href}
+                    className="rounded-full bg-ink px-4 py-2 text-sm text-paper transition hover:bg-clay-deep"
+                  >
+                    {action.label}
+                  </Link>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-          aria-label={open ? "Close menu" : "Open menu"}
-          className="rounded-full border border-line bg-card px-4 py-2 text-sm sm:hidden"
-        >
-          {open ? "Close" : "Menu"}
-        </button>
+        {!isDesktop && (
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            aria-label={open ? "Close menu" : "Open menu"}
+            className="rounded-full border border-line bg-card px-4 py-2 text-sm"
+          >
+            {open ? "Close" : "Menu"}
+          </button>
+        )}
       </div>
 
-      {open && (
-        <nav className="space-y-1 border-t border-line px-5 py-3 sm:hidden" aria-label="Mobile">
+      {!isDesktop && open && (
+        <nav className="space-y-1 border-t border-line px-5 py-3" aria-label="Mobile">
           {links.map((link) => (
             <Link
               key={link.href}
