@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Logo } from "@/components/logo";
 
 const DESKTOP_QUERY = "(min-width: 768px)";
@@ -26,23 +26,24 @@ export function NavBar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [seenPath, setSeenPath] = useState(pathname);
   // Source of truth for which layout to render: the live viewport, not
   // CSS alone — so a menu opened on mobile can never leak into desktop
   // layout after a resize, and vice versa.
   const isDesktop = useSyncExternalStore(subscribeViewport, getDesktopSnapshot, () => true);
 
-  // Close the mobile menu on navigation and when growing to desktop.
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
-  useEffect(() => {
-    if (isDesktop) setOpen(false);
-  }, [isDesktop]);
+  // Reset the mobile menu on navigation (render-time adjustment, no effect).
+  if (pathname !== seenPath) {
+    setSeenPath(pathname);
+    setMenuOpen(false);
+  }
+  // Derived: growing to desktop implicitly closes the mobile menu.
+  const showMenu = menuOpen && !isDesktop;
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
-    setOpen(false);
+    setMenuOpen(false);
     router.push("/");
     router.refresh();
   }
@@ -117,23 +118,23 @@ export function NavBar({
         {!isDesktop && (
           <button
             type="button"
-            onClick={() => setOpen((value) => !value)}
-            aria-expanded={open}
-            aria-label={open ? "Close menu" : "Open menu"}
+            onClick={() => setMenuOpen((value) => !value)}
+            aria-expanded={showMenu}
+            aria-label={showMenu ? "Close menu" : "Open menu"}
             className="rounded-full border border-line bg-card px-4 py-2 text-sm"
           >
-            {open ? "Close" : "Menu"}
+            {showMenu ? "Close" : "Menu"}
           </button>
         )}
       </div>
 
-      {!isDesktop && open && (
+      {showMenu && (
         <nav className="space-y-1 border-t border-line px-5 py-3" aria-label="Mobile">
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              onClick={() => setOpen(false)}
+              onClick={() => setMenuOpen(false)}
               aria-current={pathname === link.href ? "page" : undefined}
               className={`block rounded-xl px-3 py-2.5 text-sm ${
                 pathname === link.href ? "bg-ink text-paper" : "text-muted hover:bg-card hover:text-ink"
@@ -157,7 +158,7 @@ export function NavBar({
             <div className="flex gap-2 pt-1">
               <Link
                 href="/login"
-                onClick={() => setOpen(false)}
+                onClick={() => setMenuOpen(false)}
                 className="flex-1 rounded-xl border border-line bg-card px-3 py-2.5 text-center text-sm"
               >
                 Log in
@@ -165,7 +166,7 @@ export function NavBar({
               {action && (
                 <Link
                   href={action.href}
-                  onClick={() => setOpen(false)}
+                  onClick={() => setMenuOpen(false)}
                   className="flex-1 rounded-xl bg-ink px-3 py-2.5 text-center text-sm text-paper"
                 >
                   {action.label}
