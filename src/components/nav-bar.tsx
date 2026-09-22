@@ -121,8 +121,15 @@ export function NavBar({
             onClick={() => setMenuOpen((value) => !value)}
             aria-expanded={showMenu}
             aria-label={showMenu ? "Close menu" : "Open menu"}
-            className="rounded-full border border-line bg-card px-4 py-2 text-sm"
+            className="inline-flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2.5 text-sm"
           >
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              {showMenu ? (
+                <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              ) : (
+                <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              )}
+            </svg>
             {showMenu ? "Close" : "Menu"}
           </button>
         )}

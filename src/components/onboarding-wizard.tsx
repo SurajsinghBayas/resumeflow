@@ -6,7 +6,7 @@ import { INDUSTRY_OPTIONS, SENIORITY_OPTIONS, WORK_STYLES } from "@/lib/preferen
 import type { Profile } from "@/lib/types";
 
 const fieldClass =
-  "w-full rounded-xl border border-line bg-card px-3.5 py-3 text-[15px] outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/20";
+  "w-full rounded-xl border border-line bg-card px-3.5 py-3 text-base outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/20 sm:text-[15px]";
 
 const steps = ["Role", "Preferences", "Skills", "Expertise"] as const;
 
@@ -106,9 +106,9 @@ export function OnboardingWizard({ initial }: { initial: Profile | null }) {
     <div>
       <ol className="mb-8 flex gap-2">
         {steps.map((label, index) => (
-          <li key={label} className="flex-1">
+          <li key={label} className="min-w-0 flex-1">
             <div className={`h-1 rounded-full ${index <= step ? "bg-clay" : "bg-line"}`} />
-            <p className={`mt-2 text-xs ${index === step ? "font-medium text-ink" : "text-muted"}`}>{label}</p>
+            <p className={`mt-2 truncate text-[11px] sm:text-xs ${index === step ? "font-medium text-ink" : "text-muted"}`}>{label}</p>
           </li>
         ))}
       </ol>
@@ -303,7 +303,7 @@ function Choice({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full border px-3 py-1.5 text-sm transition ${
+      className={`rounded-full border px-4 py-2 text-sm transition ${
         active ? "border-ink bg-ink text-paper" : "border-line bg-card text-ink hover:border-ink/30"
       }`}
     >

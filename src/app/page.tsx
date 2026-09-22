@@ -20,7 +20,7 @@ export default async function HomePage() {
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-5 pb-16">
         <section className="max-w-3xl pt-10 sm:pt-16">
           <p className="text-xs font-medium tracking-[0.18em] text-clay uppercase">Resume review</p>
-          <h1 className="mt-4 font-serif text-5xl leading-[1.05] tracking-tight text-balance sm:text-7xl">
+          <h1 className="mt-4 font-serif text-4xl leading-[1.05] tracking-tight text-balance sm:text-6xl lg:text-7xl">
             Know what to keep, and what to rewrite.
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-muted">

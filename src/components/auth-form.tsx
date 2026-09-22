@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 const fieldClass =
-  "w-full rounded-xl border border-line bg-card px-3.5 py-3 text-[15px] outline-none transition placeholder:text-muted/70 focus:border-clay focus:ring-2 focus:ring-clay/20";
+  "w-full rounded-xl border border-line bg-card px-3.5 py-3 text-base outline-none transition placeholder:text-muted/70 focus:border-clay focus:ring-2 focus:ring-clay/20 sm:text-[15px]";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();

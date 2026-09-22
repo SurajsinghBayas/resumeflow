@@ -8,7 +8,7 @@ import { linkedinHref, linkedinName } from "@/lib/linkedin";
 import type { AnalysisRecord, LeaderboardEntry, Profile, SessionUser } from "@/lib/types";
 
 const fieldClass =
-  "w-full rounded-xl border border-line bg-card px-3.5 py-3 text-[15px] outline-none transition placeholder:text-muted/70 focus:border-clay focus:ring-2 focus:ring-clay/20";
+  "w-full rounded-xl border border-line bg-card px-3.5 py-3 text-base outline-none transition placeholder:text-muted/70 focus:border-clay focus:ring-2 focus:ring-clay/20 sm:text-[15px]";
 
 export function DashboardApp({
   user,
@@ -383,7 +383,33 @@ function Leaderboard({ entries }: { entries: LeaderboardEntry[] }) {
       {entries.length === 0 ? (
         <p className="mt-4 text-sm text-muted">No ranked resumes yet.</p>
       ) : (
-        <div className="mt-4 overflow-x-auto rounded-3xl border border-line bg-card">
+        <>
+          <ul className="mt-4 space-y-2 sm:hidden">
+            {entries.map((entry, index) => (
+              <li
+                key={`${entry.rank}-${index}`}
+                className={`rounded-2xl border px-4 py-3 ${entry.isYou ? "border-ink bg-moss" : "border-line bg-card"}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium">
+                    #{entry.rank} · {entry.score}
+                    {entry.isYou && <span className="ml-2 text-xs text-forest">You</span>}
+                  </p>
+                </div>
+                <p className="mt-1 truncate text-sm text-muted">{entry.role}</p>
+                <p className="mt-1 truncate text-sm">
+                  {entry.linkedinHref ? (
+                    <a href={entry.linkedinHref} target="_blank" rel="noreferrer" className="underline underline-offset-4">
+                      {entry.linkedinName}
+                    </a>
+                  ) : (
+                    entry.linkedinName
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 hidden overflow-x-auto rounded-3xl border border-line bg-card sm:block">
           <table className="w-full min-w-[36rem] text-left text-sm">
             <thead className="border-b border-line text-xs tracking-[0.14em] text-muted uppercase">
               <tr>
@@ -413,7 +439,8 @@ function Leaderboard({ entries }: { entries: LeaderboardEntry[] }) {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -433,7 +460,7 @@ function TabButton({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full px-4 py-2 text-sm ${active ? "bg-ink text-paper" : "border border-line bg-card"}`}
+      className={`rounded-full px-4 py-2.5 text-sm ${active ? "bg-ink text-paper" : "border border-line bg-card"}`}
     >
       {children}
     </button>
