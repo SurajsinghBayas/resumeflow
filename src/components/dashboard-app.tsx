@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ReportView } from "@/components/report-view";
 import { linkedinHref, linkedinName } from "@/lib/linkedin";
 import type { AnalysisRecord, LeaderboardEntry, Profile, SessionUser } from "@/lib/types";
@@ -33,8 +33,18 @@ export function DashboardApp({
   const searchParams = useSearchParams();
   const tab = searchParams.get("view") === "leaderboard" ? "leaderboard" : "reviews";
   function goTab(next: "reviews" | "leaderboard") {
+    window.scrollTo({ top: 0, behavior: "smooth" });
     router.replace(`/dashboard?view=${next}`, { scroll: false });
   }
+  // Navbar deep-links change the URL without remounting: glide up on tab switch.
+  const firstTab = useRef(true);
+  useEffect(() => {
+    if (firstTab.current) {
+      firstTab.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [tab]);
   const [analyses, setAnalyses] = useState(initialAnalyses);
   const [leaderboard, setLeaderboard] = useState(initialLeaderboard);
   const [activeId, setActiveId] = useState(initialAnalyses[0]?.id ?? "");
