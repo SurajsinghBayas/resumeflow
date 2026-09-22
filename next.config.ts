@@ -10,7 +10,8 @@ const isProd = process.env.NODE_ENV === "production";
 // clickjacking, MIME-sniffing, and capability protection.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // React dev needs eval() for error-stack reconstruction; production never uses it.
+  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' blob: data:",
   "font-src 'self' data:",
