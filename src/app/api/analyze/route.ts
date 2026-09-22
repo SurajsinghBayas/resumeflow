@@ -15,7 +15,9 @@ import { extractResumeText } from "@/lib/resume";
 import type { AnalysisRecord } from "@/lib/types";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+// Vercel Hobby caps functions at 60s. Typical reviews finish in 20-50s.
+// Raise to 120 on Pro / EC2 if slow reviews time out.
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   if (!isSameOrigin(request)) return crossOriginResponse();
